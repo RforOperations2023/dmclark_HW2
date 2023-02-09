@@ -1,0 +1,57 @@
+---
+title: "Untitled"
+output: 
+  flexdashboard::flex_dashboard:
+    orientation: columns
+    vertical_layout: fill
+runtime: shiny
+---
+
+```{r setup, include=FALSE}
+#library(flexdashboard)
+library(shiny)
+library(ggplot2)
+library(dplyr)
+library(readr)
+
+
+dataset <- read_csv("US Police shootings in from 2015-22_alt_race.csv")
+```
+
+## Inputs {.slidebar}
+
+### Age plotted against race with the race being selectable by the user
+
+```{r}
+
+checkboxGroupInput("race", "Race", choices = c("Asian","Black", "Hispanic", "Non-His / Lat", "Other", "Pacific Islander", "White"),
+                   selected = c("Asian","Black", "Hispanic", "Non-His / Lat", "Other", "Pacific Islander", "White"), inline = TRUE)
+
+sliderInput("age", "Age",
+            min = min(2), max = max(92),
+            value = range(2,92))
+
+```
+
+## Output
+
+```{r}
+data_subset <- reactive({
+  dataset %>%
+    filter(
+      race %in% input$race
+    )
+})
+
+# Render the plot 
+renderPlot({
+  ggplot(data_subset(), aes(x = race, y = age, color = factor(race))) +
+    geom_point()
+})
+```
+
+### Chart C
+
+```{r}
+
+```
