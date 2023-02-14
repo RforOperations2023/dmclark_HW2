@@ -3,7 +3,7 @@ title: "DMCLARK_HW2"
 output: 
   flexdashboard::flex_dashboard:
    orientation: rows
-   vertical_layout: fill
+   #vertical_layout: scroll
 runtime: shiny
 ---
 
@@ -20,14 +20,13 @@ library(plotly)
 
 dataset <- read_csv("US Police shootings in from 2015-22_alt_race.csv")
 ```
+Row
+-------------------------
 
-
-
-Row 
---------------------------------------
-## Chart 1 Whisker Plot Highlighting mean age based off select-able race
+### Chart 1 
 
 ```{r}
+#Whisker Plot Highlighting mean age based off select-able race
 data_subset <- reactive({
   dataset %>%
     filter(
@@ -46,9 +45,13 @@ renderPlot({
 })
 #Code is in good working order, I may need to change the display for better visuals 
 ```
-Row {.tabset .tabset-fade}
-## Chart 2 Number of Victums Armed at the time of Incident
+
+Row {.tabset}
+-----------------------
+
+### Chart 2
 ```{r}
+#Number of Victims Armed at the time of Incident
 #Isolate and get the count of victims armed at the time of shooting
 
 dataset_armed <- dataset %>%
@@ -68,16 +71,14 @@ renderPlot({
     filter(race == input$filter_variable)
 
   ggplot(filtered_data, aes(x = race, y = armed)) +
-    geom_col(fill = "blue") +
+    geom_col(fill = 'red') +
     ylab("Number of Armed People") +
     ggtitle(paste("Number of Armed People by Race:", input$filter_variable))
 })
 
-
-
 ```
 
-## Chart 3 Select race to filter by state 
+### Chart 3 Select race to filter by state 
 ```{r}
 
 data_subset <- reactive({
@@ -100,17 +101,17 @@ ggplot(filtered_data, aes(x = filter_variable, y = state)) +
 })
 ```
 
-## Chart 4
+### Chart 4
 ```{r}
 # Create a data frame
-data <- data.frame(
-  age = sample(2:92, 100, replace = TRUE),
-  filter_variable = sample(c("Asian","Black", "Hispanic", "Non-His / Lat", "Other", "Pacific Islander", "White"), 100, replace = TRUE)
-)
+#data <- data.frame(
+  #age = sample(2:92, 100, replace = TRUE),
+  #filter_variable = sample(c("Asian","Black", "Hispanic", "Non-His / Lat", "Other", "Pacific Islander", "White"), 100, replace = TRUE)
+#)
 
 # Create the plot
-plot <- plot_ly(data, x = ~age, y = ~filter_variable, type = 'scatter', mode = 'markers')
+#plot <- plot_ly(data, x = ~age, y = ~filter_variable, type = 'scatter', mode = 'markers')
 
 # Display the plot
-plotlyOutput(plot)
+#plotlyOutput(plot)
 ```
