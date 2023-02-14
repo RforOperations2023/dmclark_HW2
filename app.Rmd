@@ -2,7 +2,7 @@
 title: "Untitled"
 output: 
   flexdashboard::flex_dashboard:
-    orientation: columns
+    orientation: rows
     vertical_layout: fill
 runtime: shiny
 ---
@@ -15,50 +15,26 @@ library(dplyr)
 library(readr)
 #install.packages(ECharts2Shiny)
 library(ECharts2Shiny)
+library(plotly)
 
 
 dataset <- read_csv("US Police shootings in from 2015-22_alt_race.csv")
 ```
 
 
-## Tab 1 
-### Input
+
+Column
+--------------------------------------
+
+### Chart 1
 
 ```{r}
-
-# Create a tabbed interface
-tabsetPanel(
-  # Tab 1
-  tabPanel("Box Plot", 
-           # Render the box plot in Tab 1
-           plotOutput("box_plot")),
-  
-  
-  
-  # Tab 2
-  tabPanel("Geo Plot", 
-           # Render the geo plot in Tab 2
-           plotOutput("geo_plot"))
-)
-
-
-
-```
-
-
-## Output
-
-```{r}
-
-
 data_subset <- reactive({
   dataset %>%
     filter(
       race %in% input$race
     )
 })
-
-
 
 # Render the plot 
 
@@ -67,36 +43,72 @@ checkboxGroupInput("race", "Race", choices = c("Asian","Black", "Hispanic", "Non
 renderPlot({
   ggplot(data_subset(), aes(x = race, y = age, color = factor(race))) +
     geom_boxplot()
+  
+})
+#Code is in good working order, I may need to change the display for better visuals 
+```
+
+Column {.tabset}
+--------------------------------------
+
+## Chart 2 Number of Victums Armed at the time of Incident
+```{r}
+#Isolate and get the count of victims armed at the time of shooting
+
+# use ifelse() to convert "Yes" and "No" values to 1 and 0, respectively
+data$armed <- ifelse(data$armed == "Yes", 1, 0)
+
+# use aggregate() to get the sum of the "armed" column by race
+sum_armed_by_race <- aggregate(data$armed, by = list(data$race), sum)
+
+# rename the columns in the result
+colnames(sum_armed_by_race) <- c("race", "sum_armed")
+
+# print the result
+print(sum_armed_by_race)
+
+selectInput("filter_variable", "Filter by:", 
+            choices = c("Asian","Black", "Hispanic", "Non-His / Lat", "Other", "Pacific Islander", "White"), 
+            selected = c("Asian","Black", "Hispanic", "Non-His / Lat", "Other", "Pacific Islander", "White"))
+
+renderPlot({
+  ggplot(data_subset(), aes(x = input$age, y = input$filter_variable))+
+    geom_boxplot()
+  
 })
 
 
 
 ```
 
-## Tab 2
-## Filter {.slidebar}
-```{r}
-#sliderInput("age", "Age",
-    #        min = min(2), max = max(92),
-    #        value = range(2,92))
-
-#selectInput("filter_variable", "Filter by:", 
-           # choices = c("Asian","Black", "Hispanic", "Non-His / Lat", "Other", "Pacific Islander", "White"), 
-           # selected = c("Asian","Black", "Hispanic", "Non-His / Lat", "Other", "Pacific Islander", "White"))
-
-```
-
+##Select race to filter by state 
 ```{r}
 # Render the plot 
 
 selectInput("filter_variable", "Filter by:", 
             choices = c("Asian","Black", "Hispanic", "Non-His / Lat", "Other", "Pacific Islander", "White"), 
             selected = c("Asian","Black", "Hispanic", "Non-His / Lat", "Other", "Pacific Islander", "White"))
+
 output$plot2 <- renderPlot({
   filtered_data <- dataset %>%
     filter(filter_variable == input$filter_variable)
     
-  ggplot(filtered_data, aes(x = filter_variable, y = dataset$state)) +
+ggplot(filtered_data, aes(x = filter_variable, y = state)) +
     geom_point()
 })
+```
+
+##Chart4
+```{r}
+# Create a data frame
+data <- data.frame(
+  age = sample(2:92, 100, replace = TRUE),
+  filter_variable = sample(c("Asian","Black", "Hispanic", "Non-His / Lat", "Other", "Pacific Islander", "White"), 100, replace = TRUE)
+)
+
+# Create the plot
+plot <- plot_ly(data, x = ~age, y = ~filter_variable, type = 'scatter', mode = 'markers')
+
+# Display the plot
+plotlyOutput(plot)
 ```
