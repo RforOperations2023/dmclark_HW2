@@ -55,26 +55,26 @@ Column {.tabset}
 ```{r}
 #Isolate and get the count of victims armed at the time of shooting
 
-# use ifelse() to convert "Yes" and "No" values to 1 and 0, respectively
-data$armed <- ifelse(data$armed == "Yes", 1, 0)
+dataset_armed <- dataset %>%
+  mutate(armed = ifelse(is.na(armed),0,ifelse(armed == "Yes",1,0))) %>%
+  na.omit()
 
-# use aggregate() to get the sum of the "armed" column by race
-sum_armed_by_race <- aggregate(data$armed, by = list(data$race), sum)
-
-# rename the columns in the result
-colnames(sum_armed_by_race) <- c("race", "sum_armed")
-
-# print the result
-print(sum_armed_by_race)
+sum_armed_by_race <- dataset_armed %>%
+  group_by(race) %>%
+  summarize(sum_armed = sum(armed))
 
 selectInput("filter_variable", "Filter by:", 
             choices = c("Asian","Black", "Hispanic", "Non-His / Lat", "Other", "Pacific Islander", "White"), 
             selected = c("Asian","Black", "Hispanic", "Non-His / Lat", "Other", "Pacific Islander", "White"))
 
 renderPlot({
-  ggplot(data_subset(), aes(x = input$age, y = input$filter_variable))+
-    geom_boxplot()
-  
+  filtered_data <- dataset_armed %>%
+    filter(race == input$filter_variable)
+
+  ggplot(filtered_data, aes(x = race, y = armed)) +
+    geom_col(fill = "blue") +
+    ylab("Number of Armed People") +
+    ggtitle(paste("Number of Armed People by Race:", input$filter_variable))
 })
 
 
@@ -89,7 +89,7 @@ selectInput("filter_variable", "Filter by:",
             choices = c("Asian","Black", "Hispanic", "Non-His / Lat", "Other", "Pacific Islander", "White"), 
             selected = c("Asian","Black", "Hispanic", "Non-His / Lat", "Other", "Pacific Islander", "White"))
 
-output$plot2 <- renderPlot({
+renderPlot({
   filtered_data <- dataset %>%
     filter(filter_variable == input$filter_variable)
     
