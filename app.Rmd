@@ -1,9 +1,9 @@
 ---
-title: "Untitled"
+title: "DMCLARK_HW2"
 output: 
   flexdashboard::flex_dashboard:
-    orientation: rows
-    vertical_layout: fill
+   orientation: rows
+   vertical_layout: fill
 runtime: shiny
 ---
 
@@ -23,10 +23,9 @@ dataset <- read_csv("US Police shootings in from 2015-22_alt_race.csv")
 
 
 
-Column
+Row 
 --------------------------------------
-
-### Chart 1
+## Chart 1 Whisker Plot Highlighting mean age based off select-able race
 
 ```{r}
 data_subset <- reactive({
@@ -47,10 +46,7 @@ renderPlot({
 })
 #Code is in good working order, I may need to change the display for better visuals 
 ```
-
-Column {.tabset}
---------------------------------------
-
+Row {.tabset .tabset-fade}
 ## Chart 2 Number of Victums Armed at the time of Incident
 ```{r}
 #Isolate and get the count of victims armed at the time of shooting
@@ -81,16 +77,22 @@ renderPlot({
 
 ```
 
-##Select race to filter by state 
+## Chart 3 Select race to filter by state 
 ```{r}
-# Render the plot 
 
-selectInput("filter_variable", "Filter by:", 
-            choices = c("Asian","Black", "Hispanic", "Non-His / Lat", "Other", "Pacific Islander", "White"), 
-            selected = c("Asian","Black", "Hispanic", "Non-His / Lat", "Other", "Pacific Islander", "White"))
+data_subset <- reactive({
+  dataset %>%
+    filter(
+      state %in% input$state
+    )
+})
+selectInput("state", "Select State(s):", 
+            choices = unique(dataset$state), 
+            selected = unique(dataset$state),
+            multiple = TRUE)
 
 renderPlot({
-  filtered_data <- dataset %>%
+  filtered_data <- data_subset() %>%
     filter(filter_variable == input$filter_variable)
     
 ggplot(filtered_data, aes(x = filter_variable, y = state)) +
@@ -98,7 +100,7 @@ ggplot(filtered_data, aes(x = filter_variable, y = state)) +
 })
 ```
 
-##Chart4
+## Chart 4
 ```{r}
 # Create a data frame
 data <- data.frame(
