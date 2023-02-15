@@ -21,7 +21,10 @@ library(plotly)
 #install.packages('ggguitar')
 
 dataset <- read_csv("US Police shootings in from 2015-22_alt_race.csv")
+
 ```
+
+
 Column
 -------------------------
 
@@ -40,7 +43,7 @@ renderPlot({
   ggplot(filtered_data, aes(x = race, y = age, color = factor(race))) +
     geom_boxplot()
 
-})
+}, width = 800, height = 600)
 
 
 #Code is working 
@@ -75,7 +78,7 @@ renderPlot({
     ylab("Number of Armed People") +
     ggtitle(paste("Number of Armed People by Race:", input$filter_variable))
 
-})
+}, width = 800, height = 600)
 
 
 
@@ -96,7 +99,7 @@ data_subset <- reactive({
 })
 selectInput("state", "Select State(s):", 
             choices = unique(dataset$state), 
-            selected = unique(dataset$state),
+            selected = "PA",
             multiple = TRUE)
 
 renderPlot({
@@ -105,9 +108,9 @@ renderPlot({
     group_by(state) %>%
     summarise(total_deaths = n())
     
-ggplot(total_deaths_per_state, aes(x = state, y = total_deaths)) +
+ggplot(total_deaths_per_state, aes(x = state, y = total_deaths, fill= state)) +
     geom_bar(stat = "identity")
-})
+}, width = 800, height = 600)
 
 ```
 
