@@ -35,6 +35,7 @@ create_gauge <- function(value, max_value, label, avg_age = NULL) {
   if (!is.null(avg_age)) {
     label <- paste0(label, "<br>Average Age: ", avg_age)
   }
+
   
   gauge(value = value, 
         min = 0, 
@@ -48,15 +49,22 @@ create_gauge <- function(value, max_value, label, avg_age = NULL) {
         symbol = "%")
 }
 
-#Need to drop the na from age
+#Need to drop the na from age (Gauge 1)
 dataset <- dataset %>% filter(!is.na(age))
 
-# Calculate the average age across all races
+# Calculate the average age across all races (Gauge 1)
 avg_age <- mean(dataset$age)
+
+# Calculate the sum of armed victims by race (Gauge 2)
+dataset_armed_race <- dataset %>% 
+  mutate(armed = ifelse(is.na(armed), 0, ifelse(armed == "Yes", 1, 0))) %>% 
+  filter(!is.na(race)) %>%
+  group_by(race) %>% 
+  summarize(sum_armed = sum(armed))
 
 # Create the gauges
 gauge1 <- create_gauge(avg_age, 100, "Average Age Across All Races", round(avg_age, 2))
-gauge2 <- create_gauge(50, 100, "Total number armed at time of shooting")
+gauge2 <- create_gauge(50, 100, "Total number armed at time of shooting", 99)
 gauge3 <- create_gauge(20, 100, "Deaths by race by state")
 
 # Display the gauges
@@ -121,9 +129,6 @@ renderPlot({
     ggtitle(paste("Number of Armed People by Race:", input$filter_variable))
 
 }, width = 800, height = 600)
-
-
-
 
 
 # Code works, I want to add an valueBox or guage
