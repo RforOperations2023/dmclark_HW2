@@ -16,7 +16,7 @@ library(readr)
 library(flexdashboard)
 library(ECharts2Shiny)
 library(plotly)
-
+library(DT)
 #install.packages(ECharts2Shiny)
 #install.packages('ggguitar')
 
@@ -25,7 +25,50 @@ dataset <- read_csv("US Police shootings in from 2015-22_alt_race.csv")
 ```
 
 
+
 Column
+------------------------
+### Gauges 
+```{r}
+# Define a function that creates a gauge
+create_gauge <- function(value, max_value, label, avg_age = NULL) {
+  if (!is.null(avg_age)) {
+    label <- paste0(label, "<br>Average Age: ", avg_age)
+  }
+  
+  gauge(value = value, 
+        min = 0, 
+        max = max_value, 
+        gaugeSectors(
+          success = c(0, max_value * 0.6), 
+          warning = c(max_value * 0.6, max_value * 0.9), 
+          danger = c(max_value * 0.9, max_value)
+        ), 
+        label = label, 
+        symbol = "%")
+}
+
+#Need to drop the na from age
+dataset <- dataset %>% filter(!is.na(age))
+
+# Calculate the average age across all races
+avg_age <- mean(dataset$age)
+
+# Create the gauges
+gauge1 <- create_gauge(avg_age, 100, "Average Age Across All Races", round(avg_age, 2))
+gauge2 <- create_gauge(50, 100, "Total number armed at time of shooting")
+gauge3 <- create_gauge(20, 100, "Deaths by race by state")
+
+# Display the gauges
+fluidRow(
+  column(width = 4, gauge1),
+  column(width = 4, gauge2),
+  column(width = 4, gauge3)
+)
+
+```
+
+Column {.tabset}
 -------------------------
 
 ### Whisker plots for Mean age  
@@ -49,7 +92,6 @@ renderPlot({
 #Code is working 
 ```
 
-Column {.tabset}
 -----------------------
 
 ### Number of Victims Armed at the time of Incident
@@ -116,15 +158,9 @@ ggplot(total_deaths_per_state, aes(x = state, y = total_deaths, fill= state)) +
 
 ### Data Table 
 ```{r}
-# Create a data frame
-#data <- data.frame(
-  #age = sample(2:92, 100, replace = TRUE),
-  #filter_variable = sample(c("Asian","Black", "Hispanic", "Non-His / Lat", "Other", "Pacific Islander", "White"), 100, replace = TRUE)
-#)
+# Create the data table
+data_table <- datatable(dataset, options = list(pageLength = 10))
 
-# Create the plot
-#plot <- plot_ly(data, x = ~age, y = ~filter_variable, type = 'scatter', mode = 'markers')
-
-# Display the plot
-#plotlyOutput(plot)
+# Render the data table
+renderDT(data_table)
 ```
