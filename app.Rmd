@@ -2,8 +2,8 @@
 title: "DMCLARK_HW2"
 output: 
   flexdashboard::flex_dashboard:
-   orientation: rows
-   #vertical_layout: scroll
+   orientation: columns
+   vertical_layout: fill
 runtime: shiny
 ---
 
@@ -13,45 +13,45 @@ library(shiny)
 library(ggplot2)
 library(dplyr)
 library(readr)
-#install.packages(ECharts2Shiny)
+library(flexdashboard)
 library(ECharts2Shiny)
 library(plotly)
 
+#install.packages(ECharts2Shiny)
+#install.packages('ggguitar')
 
 dataset <- read_csv("US Police shootings in from 2015-22_alt_race.csv")
 ```
-Row
+Column
 -------------------------
 
-### Chart 1 
+### Whisker plots for Mean age  
 
 ```{r}
 #Whisker Plot Highlighting mean age based off select-able race
-data_subset <- reactive({
-  dataset %>%
-    filter(
-      race %in% input$race
-    )
-})
-
-# Render the plot 
 
 checkboxGroupInput("race", "Race", choices = c("Asian","Black", "Hispanic", "Non-His / Lat", "Other", "Pacific Islander", "White"),
                    selected = c("Asian","Black", "Hispanic", "Non-His / Lat", "Other", "Pacific Islander", "White"), inline = TRUE)
-renderPlot({
-  ggplot(data_subset(), aes(x = race, y = age, color = factor(race))) +
+
+
+renderPlot({ 
+  filtered_data <- dataset %>%
+    filter(race %in% input$race)
+  ggplot(filtered_data, aes(x = race, y = age, color = factor(race))) +
     geom_boxplot()
-  
+
 })
-#Code is in good working order, I may need to change the display for better visuals 
+
+
+#Code is working 
 ```
 
-Row {.tabset}
+Column {.tabset}
 -----------------------
 
-### Chart 2
+### Number of Victims Armed at the time of Incident
 ```{r}
-#Number of Victims Armed at the time of Incident
+#
 #Isolate and get the count of victims armed at the time of shooting
 
 dataset_armed <- dataset %>%
@@ -74,7 +74,14 @@ renderPlot({
     geom_col(fill = 'red') +
     ylab("Number of Armed People") +
     ggtitle(paste("Number of Armed People by Race:", input$filter_variable))
+
 })
+
+
+
+
+
+# Code works, I want to add an valueBox or guage
 
 ```
 
@@ -93,15 +100,18 @@ selectInput("state", "Select State(s):",
             multiple = TRUE)
 
 renderPlot({
-  filtered_data <- data_subset() %>%
-    filter(filter_variable == input$filter_variable)
+  filtered_data <- data_subset()
+  total_deaths_per_state <- filtered_data %>%
+    group_by(state) %>%
+    summarise(total_deaths = n())
     
-ggplot(filtered_data, aes(x = filter_variable, y = state)) +
-    geom_point()
+ggplot(total_deaths_per_state, aes(x = state, y = total_deaths)) +
+    geom_bar(stat = "identity")
 })
+
 ```
 
-### Chart 4
+### Data Table 
 ```{r}
 # Create a data frame
 #data <- data.frame(
