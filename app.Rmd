@@ -37,7 +37,7 @@ Row
 ### Value Boxes 
 ```{r}
 
-#Need to drop the na from age (Gauge 1)
+#Need to drop the na from age (Value Box 1 )
 dataset <- dataset %>% filter(!is.na(age))
 
 # Calculate the average age across all races (Gauge 1)
@@ -56,12 +56,54 @@ output$ageBox <- renderValueBox({
 fluidRow(
   column(width = 4, valueBoxOutput("ageBox"))
 )
-```
 
+
+
+
+# Start of valueBox Armed 
+
+dataset_armed <- dataset %>%
+  mutate(armed = ifelse(is.na(armed),0,ifelse(armed == "Yes",1,0))) %>%
+  na.omit()
+
+sum_armed_by_race <- dataset_armed %>%
+  group_by(race) %>%
+  summarize(sum_armed = sum(armed))
+
+filtered_data_a <- reactive({
+  dataset_armed %>%
+    filter(race == input$filter_variable)
+})
+
+output$armedBox <- renderValueBox({
+  valueBox(paste("Sum of Armed People: ", sum(filtered_data_a()$armed)), color = "blue")
+})
+
+fluidRow(
+  column(width = 4, valueBoxOutput("armedBox"))
+)
+
+#Start of the valueBox state
+
+
+# filtered_data <- data_subset
+# total_deaths_per_state <- filtered_data %>%
+#   group_by(state) %>%
+#   summarise(total_deaths = n())
+# 
+# output$stateBox <- renderValueBox({
+#   valueBox(paste("Total Deaths in Selected States: ", sum(total_deaths_per_state$total_deaths)), color = "blue")
+# })
+# 
+# fluidRow(
+#   column(width = 4, valueBoxOutput("stateBox"))
+# )
+
+```
 Row {.tabset .tabset-fade}
 -------------------------
 
-### Whisker plots for Mean age  
+### Age distrobution \n based on race  
 
 ```{r}
 #Whisker Plot Highlighting mean age based off select-able race
@@ -84,70 +126,67 @@ renderPlot({
 
 ```
 
-```{r}
-
-```
-
 -----------------------
 
-### Number of Victims Armed at the time of Incident
+### Armed during incident 
 ```{r}
 
-# 
-# dataset_armed <- dataset %>%
-#   mutate(armed = ifelse(is.na(armed),0,ifelse(armed == "Yes",1,0))) %>%
-#   na.omit()
-# 
-# sum_armed_by_race <- dataset_armed %>%
-#   group_by(race) %>%
-#   summarize(sum_armed = sum(armed))
-# 
-# selectInput("filter_variable", "Filter by:", 
-#             choices = c("Asian","Black", "Hispanic", "Non-His / Lat", "Other", "Pacific Islander", "White"), 
-#             selected = c("Asian","Black", "Hispanic", "Non-His / Lat", "Other", "Pacific Islander", "White"))
-# 
-# plotOutput('plot')
-# 
-# filtered_data_a <- reactive({
-#   dataset_armed %>%
-#     filter(race == input$filter_variable)
-# })
-# 
-# output$plot <- renderPlot({
-#   ggplot(filtered_data_a(), aes(x = race, y = armed)) +
-#     geom_col(fill = 'red') +
-#     ylab("Number of Armed People") +
-#     ggtitle(paste("Number of Armed People by Race:", input$filter_variable))
-# }, width = 800, height = 600)
+
+dataset_armed <- dataset %>%
+  mutate(armed = ifelse(is.na(armed),0,ifelse(armed == "Yes",1,0))) %>%
+  na.omit()
+
+sum_armed_by_race <- dataset_armed %>%
+  group_by(race) %>%
+  summarize(sum_armed = sum(armed))
+
+selectInput("filter_variable", "Filter by:",
+            choices = c("Asian","Black", "Hispanic", "Non-His / Lat", "Other", "Pacific Islander", "White"),
+            selected = c("Asian","Black", "Hispanic", "Non-His / Lat", "Other", "Pacific Islander", "White"),
+            multiple = TRUE)
+
+plotOutput('plot')
+
+filtered_data_a <- reactive({
+  dataset_armed %>%
+    filter(race == input$filter_variable)
+})
+
+output$plot <- renderPlot({
+  ggplot(filtered_data_a(), aes(x = race, y = armed)) +
+    geom_col(fill = "red") +
+    ylab("Number of Armed People") +
+    ggtitle(paste("Number of Armed People by Race:", input$filter_variable))
+}, width = 800, height = 600)
 
 
 
 
 ```
 
-### Chart 3 Select race to filter by state 
+### Shootings per state  
 ```{r}
 
-# data_subset <- reactive({
-#   dataset %>%
-#     filter(
-#       state %in% input$state
-#     )
-# })
-# selectInput("state", "Select State(s):", 
-#             choices = sort(unique(dataset$state)), 
-#             selected = "PA",
-#             multiple = TRUE)
-# 
-# renderPlot({
-#   filtered_data <- data_subset()
-#   total_deaths_per_state <- filtered_data %>%
-#     group_by(state) %>%
-#     summarise(total_deaths = n())
-#     
-# ggplot(total_deaths_per_state, aes(x = state, y = total_deaths, fill= state)) +
-#     geom_bar(stat = "identity")
-# }, width = 800, height = 600)
+data_subset <- reactive({
+  dataset %>%
+    filter(
+      state %in% input$state
+    )
+})
+selectInput("state", "Select State(s):",
+            choices = sort(unique(dataset$state)),
+            selected = "PA",
+            multiple = TRUE)
+
+renderPlot({
+  filtered_data <- data_subset()
+  total_deaths_per_state <- filtered_data %>%
+    group_by(state) %>%
+    summarise(total_deaths = n())
+
+ggplot(total_deaths_per_state, aes(x = state, y = total_deaths, fill= state)) +
+    geom_bar(stat = "identity")
+}, width = 800, height = 600)
 
 ```
 
