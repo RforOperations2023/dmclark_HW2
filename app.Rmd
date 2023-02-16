@@ -19,6 +19,9 @@ library(plotly)
 library(DT)
 #install.packages(ECharts2Shiny)
 #install.packages('ggguitar')
+# Need to change graphs to plotly not ggplot
+#make other tabs reactive
+#move guages to reflect those reactuve gauges 
 
 dataset <- read_csv("US Police shootings in from 2015-22_alt_race.csv")
 
@@ -63,7 +66,7 @@ dataset_armed_race <- dataset %>%
   summarize(sum_armed = sum(armed))
 
 # Create the gauges
-gauge1 <- create_gauge(avg_age, 100, "Average Age Across All Races", round(avg_age, 2))
+gauge1 <- create_gauge(avg_age, 100, "Average Age Across All Races", round(avg_age, 2)) #rendergauge 
 gauge2 <- create_gauge(50, 100, "Total number armed at time of shooting", 99)
 gauge3 <- create_gauge(20, 100, "Deaths by race by state")
 
@@ -88,24 +91,40 @@ checkboxGroupInput("race", "Race", choices = c("Asian","Black", "Hispanic", "Non
                    selected = c("Asian","Black", "Hispanic", "Non-His / Lat", "Other", "Pacific Islander", "White"), inline = TRUE)
 
 
-renderPlot({ 
-  filtered_data <- dataset %>%
+whiskerPlot <- reactive({
+  filtered_data_w <- dataset %>%
     filter(race %in% input$race)
-  ggplot(filtered_data, aes(x = race, y = age, color = factor(race))) +
+  ggplot(filtered_data_w, aes(x = race, y = age, color = factor(race))) +
     geom_boxplot()
+})
 
+averageAge <- reactive({
+  dataset %>% filter(race %in% input$race) %>% summarise(avg_age = mean(age))
+})
+
+gauge1 <- renderGauge({
+  create_gauge(value = averageAge()$avg_age, max_value = 100, label = "Average Age", avg_age = round(averageAge()$avg_age, 2))
+})
+
+fluidRow(
+  column(width = 8, renderPlot({
+    whiskerPlot()
+  })),
+  column(width = 4, gauge1)
+)
+
+renderPlot({
+  whiskerPlot()
 }, width = 800, height = 600)
 
 
-#Code is working 
 ```
 
 -----------------------
 
 ### Number of Victims Armed at the time of Incident
 ```{r}
-#
-#Isolate and get the count of victims armed at the time of shooting
+
 
 dataset_armed <- dataset %>%
   mutate(armed = ifelse(is.na(armed),0,ifelse(armed == "Yes",1,0))) %>%
@@ -119,19 +138,22 @@ selectInput("filter_variable", "Filter by:",
             choices = c("Asian","Black", "Hispanic", "Non-His / Lat", "Other", "Pacific Islander", "White"), 
             selected = c("Asian","Black", "Hispanic", "Non-His / Lat", "Other", "Pacific Islander", "White"))
 
-renderPlot({
-  filtered_data <- dataset_armed %>%
-    filter(race == input$filter_variable)
+plotOutput('plot')
 
-  ggplot(filtered_data, aes(x = race, y = armed)) +
+filtered_data_a <- reactive({
+  dataset_armed %>%
+    filter(race == input$filter_variable)
+})
+
+output$plot <- renderPlot({
+  ggplot(filtered_data_a(), aes(x = race, y = armed)) +
     geom_col(fill = 'red') +
     ylab("Number of Armed People") +
     ggtitle(paste("Number of Armed People by Race:", input$filter_variable))
-
 }, width = 800, height = 600)
 
 
-# Code works, I want to add an valueBox or guage
+
 
 ```
 
@@ -145,7 +167,7 @@ data_subset <- reactive({
     )
 })
 selectInput("state", "Select State(s):", 
-            choices = unique(dataset$state), 
+            choices = sort(unique(dataset$state)), 
             selected = "PA",
             multiple = TRUE)
 
