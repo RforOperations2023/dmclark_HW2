@@ -1,9 +1,9 @@
 ---
-title: "DMCLARK_HW2"
+title: "Observations of fatel shootings in the US from 2015-2022"
 output: 
   flexdashboard::flex_dashboard:
    orientation: rows
-   #vertical_layout: fill
+   vertical_layout: fill
 runtime: shiny
 ---
 
@@ -53,9 +53,6 @@ output$ageBox <- renderValueBox({
   valueBox(paste("Average Age: ", round(averageAge()$avg_age, 2)), color = "blue")
 })
 
-fluidRow(
-  column(width = 4, valueBoxOutput("ageBox"))
-)
 
 
 
@@ -79,9 +76,9 @@ output$armedBox <- renderValueBox({
   valueBox(paste("Sum of Armed People: ", sum(filtered_data_a()$armed)), color = "blue")
 })
 
-fluidRow(
-  column(width = 4, valueBoxOutput("armedBox"))
-)
+# fluidRow(
+#   column(width = 4, valueBoxOutput("armedBox"))
+# )
 
 #Start of the valueBox state
 
@@ -99,6 +96,14 @@ fluidRow(
 #   column(width = 4, valueBoxOutput("stateBox"))
 # )
 
+fluidRow(
+  column(width = 4,
+    fluidRow(valueBoxOutput("ageBox"))
+  ),
+  column(width = 4,
+    fluidRow(valueBoxOutput("armedBox"))
+  )
+)
 ```
 Row {.tabset .tabset-fade}
 -------------------------
@@ -106,11 +111,9 @@ Row {.tabset .tabset-fade}
 ### Age distrobution \n based on race  
 
 ```{r}
-#Whisker Plot Highlighting mean age based off select-able race
-
+# Whisker Plot Highlighting mean age based off select-able race
 checkboxGroupInput("race", "Race", choices = c("Asian","Black", "Hispanic", "Non-His / Lat", "Other", "Pacific Islander", "White"),
                    selected = c("Asian","Black", "Hispanic", "Non-His / Lat", "Other", "Pacific Islander", "White"), inline = TRUE)
-
 
 whiskerPlot <- reactive({
   filtered_data <- dataset %>%
@@ -119,10 +122,11 @@ whiskerPlot <- reactive({
     geom_boxplot()
 })
 
+output$whiskerPlot <- renderPlotly({
+  ggplotly(whiskerPlot())
+})
 
-renderPlot({
-  whiskerPlot()
-}, width = 800, height = 600)
+plotlyOutput("whiskerPlot", width = "100%", height = 600)
 
 ```
 
@@ -132,8 +136,10 @@ renderPlot({
 ```{r}
 
 
+library(plotly)
+
 dataset_armed <- dataset %>%
-  mutate(armed = ifelse(is.na(armed),0,ifelse(armed == "Yes",1,0))) %>%
+  mutate(armed = ifelse(is.na(armed), 0, ifelse(armed == "Yes", 1, 0))) %>%
   na.omit()
 
 sum_armed_by_race <- dataset_armed %>%
@@ -145,19 +151,18 @@ selectInput("filter_variable", "Filter by:",
             selected = c("Asian","Black", "Hispanic", "Non-His / Lat", "Other", "Pacific Islander", "White"),
             multiple = TRUE)
 
-plotOutput('plot')
-
-filtered_data_a <- reactive({
-  dataset_armed %>%
-    filter(race == input$filter_variable)
+output$plot <- renderPlotly({
+  filtered_data_a <- dataset_armed %>%
+    filter(race %in% input$filter_variable)
+  
+  plot_ly(data = filtered_data_a, x = ~race, y = ~armed, type = "bar",
+          marker = list(color = "red")) %>%
+    layout(yaxis = list(title = "Number of Armed People"),
+           title = paste("Number of Armed People by Race:", paste(input$filter_variable, collapse = ",")))
 })
 
-output$plot <- renderPlot({
-  ggplot(filtered_data_a(), aes(x = race, y = armed)) +
-    geom_col(fill = "red") +
-    ylab("Number of Armed People") +
-    ggtitle(paste("Number of Armed People by Race:", input$filter_variable))
-}, width = 800, height = 600)
+plotlyOutput("plot", width = 800, height = 600)
+
 
 
 
@@ -175,25 +180,27 @@ data_subset <- reactive({
 })
 selectInput("state", "Select State(s):",
             choices = sort(unique(dataset$state)),
-            selected = "PA",
+            selected = c("PA","WV","OH"),
             multiple = TRUE)
 
-renderPlot({
+renderPlotly({
   filtered_data <- data_subset()
   total_deaths_per_state <- filtered_data %>%
     group_by(state) %>%
     summarise(total_deaths = n())
 
-ggplot(total_deaths_per_state, aes(x = state, y = total_deaths, fill= state)) +
-    geom_bar(stat = "identity")
-}, width = 800, height = 600)
+  plot_ly(total_deaths_per_state, x = ~state, y = ~total_deaths, type = 'bar', color = ~state)
+})
+
+#plotlyOutput("plot", width = 800, height = 600)
+
 
 ```
 
 ### Data Table 
 ```{r}
 # Create the data table
-data_table <- datatable(dataset, options = list(pageLength = 10))
+data_table <- datatable(dataset, options = list(pageLength = 25))
 
 # Render the data table
 renderDT(data_table)
