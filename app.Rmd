@@ -1,9 +1,9 @@
 ---
-title: "Observations of fatel shootings in the US from 2015-2022"
+title: "Observations of fatal shootings in the US from 2015-2022"
 output: 
   flexdashboard::flex_dashboard:
    orientation: rows
-   vertical_layout: fill
+   #vertical_layout: fill
 runtime: shiny
 ---
 
@@ -22,9 +22,6 @@ library(shinyWidgets)
 #install.packages('ggguitar')
 
 #install.packages("shinyWidgets")
-# Need to change graphs to plotly not ggplot
-#make other tabs reactive
-#move guages to reflect those reactuve gauges 
 
 dataset <- read_csv("US Police shootings in from 2015-22_alt_race.csv")
 
@@ -50,12 +47,8 @@ averageAge <- reactive({
   filtered_data %>% summarise(avg_age = mean(age))
 })
 output$ageBox <- renderValueBox({
-  valueBox(paste("Average Age: ", round(averageAge()$avg_age, 2)), color = "blue")
+  valueBox(paste("Average age at time of death: ", round(averageAge()$avg_age, 2)), color = "blue")
 })
-
-
-
-
 
 # Start of valueBox Armed 
 
@@ -73,28 +66,25 @@ filtered_data_a <- reactive({
 })
 
 output$armedBox <- renderValueBox({
-  valueBox(paste("Sum of Armed People: ", sum(filtered_data_a()$armed)), color = "blue")
+  valueBox(paste("Sum of armed people by race: ", sum(filtered_data_a()$armed)), color = "blue")
 })
 
-# fluidRow(
-#   column(width = 4, valueBoxOutput("armedBox"))
-# )
 
 #Start of the valueBox state
 
+output$stateBox <- renderValueBox({
+  filtered_data <- data_subset() %>%
+    filter(
+      !is.na(age)
+    ) %>%
+    mutate(armed = ifelse(is.na(armed),0,ifelse(armed == "Yes",1,0)))
+  
+  total_deaths <- filtered_data %>% 
+                  summarise(total_deaths = n()) %>% 
+                  pull(total_deaths)
+  valueBox(paste("Total Deaths in Selected States: ", total_deaths), color = "blue")
+})
 
-# filtered_data <- data_subset
-# total_deaths_per_state <- filtered_data %>%
-#   group_by(state) %>%
-#   summarise(total_deaths = n())
-# 
-# output$stateBox <- renderValueBox({
-#   valueBox(paste("Total Deaths in Selected States: ", sum(total_deaths_per_state$total_deaths)), color = "blue")
-# })
-# 
-# fluidRow(
-#   column(width = 4, valueBoxOutput("stateBox"))
-# )
 
 fluidRow(
   column(width = 4,
@@ -102,19 +92,30 @@ fluidRow(
   ),
   column(width = 4,
     fluidRow(valueBoxOutput("armedBox"))
-  )
+  ),
+  column(width = 4, 
+    fluidRow(valueBoxOutput("stateBox"))
+ )
 )
+
+# I had to literally fight for my life to get this to work, I was hoping to have them each in their own "button" but ran out of time.
 ```
+
 Row {.tabset .tabset-fade}
 -------------------------
 
-### Age distrobution \n based on race  
+### Age distribution based on race  
 
 ```{r}
 # Whisker Plot Highlighting mean age based off select-able race
-checkboxGroupInput("race", "Race", choices = c("Asian","Black", "Hispanic", "Non-His / Lat", "Other", "Pacific Islander", "White"),
-                   selected = c("Asian","Black", "Hispanic", "Non-His / Lat", "Other", "Pacific Islander", "White"), inline = TRUE)
 
+#Creating the check box input for the races
+checkboxGroupInput("race", "Race", choices = c("Asian","Black", "Hispanic", "Non-His / Lat", "Other", "Pacific Islander", "White"),
+
+                    selected = c("Asian","Black", "Hispanic", "Non-His / Lat", "Other", "Pacific Islander", "White"), inline = TRUE)
+
+
+#Creating the reactive whisker plot 
 whiskerPlot <- reactive({
   filtered_data <- dataset %>%
     filter(race %in% input$race)
@@ -122,34 +123,38 @@ whiskerPlot <- reactive({
     geom_boxplot()
 })
 
+#Output for the whiskerplot to plotly 
 output$whiskerPlot <- renderPlotly({
   ggplotly(whiskerPlot())
+    
 })
 
-plotlyOutput("whiskerPlot", width = "100%", height = 600)
+plotlyOutput("whiskerPlot", width = "100%", height = 500)
 
+
+# I am not sure if there is a better or more efficient was to do this but I was able to Frankenstein this together and it works. 
 ```
 
 -----------------------
 
 ### Armed during incident 
 ```{r}
-
-
-library(plotly)
-
+# mutating the various categories of "armed" to 1 and 0
 dataset_armed <- dataset %>%
   mutate(armed = ifelse(is.na(armed), 0, ifelse(armed == "Yes", 1, 0))) %>%
   na.omit()
 
+#Getting the sum of shootings by race 
 sum_armed_by_race <- dataset_armed %>%
   group_by(race) %>%
   summarize(sum_armed = sum(armed))
+
 
 selectInput("filter_variable", "Filter by:",
             choices = c("Asian","Black", "Hispanic", "Non-His / Lat", "Other", "Pacific Islander", "White"),
             selected = c("Asian","Black", "Hispanic", "Non-His / Lat", "Other", "Pacific Islander", "White"),
             multiple = TRUE)
+
 
 output$plot <- renderPlotly({
   filtered_data_a <- dataset_armed %>%
@@ -162,10 +167,6 @@ output$plot <- renderPlotly({
 })
 
 plotlyOutput("plot", width = 800, height = 600)
-
-
-
-
 
 ```
 
@@ -191,8 +192,6 @@ renderPlotly({
 
   plot_ly(total_deaths_per_state, x = ~state, y = ~total_deaths, type = 'bar', color = ~state)
 })
-
-#plotlyOutput("plot", width = 800, height = 600)
 
 
 ```
